@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+	<title>HTML5 File API</title>
+	<meta charset="utf-8">
+	<style>
+		html,body,input {font:16px Ubuntu,Tahoma,sans-serif}
+		label:after {display:block;content:"";}
+		input {width:500px;padding:3px;}
+		output {display:block;margin:10px 0;}
+	</style>
+</head>
+<body>
+	<form id="meta">
+		<label for="files">Select audio file, please:</label>
+		<input type="file" id="files" name="file">
+	</form>
+	<output id="output"></output>
+	<script type="text/javascript" src="../audio-tags.js"></script>
+	<script type="text/javascript" src="../id3v1.js"></script>
+	<script type="text/javascript" src="../id3v2.js"></script>
+	<script type="text/javascript" src="script.js"></script>
+</body>
+</html>
