@@ -15,6 +15,10 @@ Todo
 
 - Read "Xiph Comments" from Ogg Vorbis files
 
+Technical Requirements
+-------
+
+
 License
 -------
 

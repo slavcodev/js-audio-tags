@@ -3,7 +3,7 @@
  */
 var ID3v2Reader=function(){
 	this.errors=[];
-	this.tag=0;
+	this.result=0;
 };
 /**
  * @type {AudioTagsReader}
@@ -14,7 +14,7 @@ ID3v2Reader.prototype=new AudioTagsReader;
  */
 ID3v2Reader.prototype.readFromFile=function(file){
 	var self=this,
-		reader=new FileReader;
+		reader=this.getFileReader();
 
 	reader.onloadend=function(e){
 		if(e.target.readyState==FileReader.DONE){
@@ -23,30 +23,23 @@ ID3v2Reader.prototype.readFromFile=function(file){
 
 			header.populate(result);
 			if(header.hasError()){
-				for(var i=0;i<header.errors.length;i++){
-					self.errors.push(header.errors[i]);
-				}
-				self.onLoaded.call(self);
+				self.addErrors(header.errors);
+				self.onLoaded({type:'onLoaded',target:self});
 			}
 			else {
-				var reader=new FileReader;
+				var reader=self.getFileReader();
 				reader.onloadend=function(e){
 					var result=new BinaryBuffer(e.target.result),
-						tag=new ID3v2;
+						tag=new ID3v2(header);
 
-					tag.header=header;
 					tag.populate(result);
-
 					if(tag.hasError()){
-						for(var i=0;i<tag.errors.length;i++){
-							self.errors.push(tag.errors[i]);
-						}
-						self.onLoaded.call(self);
+						self.addErrors(tag.errors);
 					}
 					else {
-						self.tag=tag;
-						self.onLoaded.call(self);
+						self.result=tag;
 					}
+					self.onLoaded({type:'onLoaded',target:self});
 				};
 				reader.readAsArrayBuffer(file.slice(10,header.size));
 			}
@@ -61,9 +54,10 @@ ID3v2Reader.prototype.readFromFile=function(file){
  *
  * @constructor
  */
-var ID3v2=function(){
+var ID3v2=function(header){
 	this.errors=[];
-	this.header={};
+	this.header=header||new ID3v2Header;
+	this.frames={};
 };
 /**
  * @type {AudioTagData}
@@ -86,14 +80,15 @@ ID3v2.prototype.populate=function(buffer){
 
 	// TODO: Read frames
 	var frame=new ID3v2FrameHeader;
-	frame.populate(buffer.slice(0,10));
+	frame.populate(buffer.slice(cursor,10));
 	if(frame.hasError()){
 		for(var i=0;i<frame.errors.length;i++){
 			this.errors.push(frame.errors[i]);
 		}
 	}
 	else {
-		alert(frame.id);
+		this.frames[frame.id]=frame;
+
 	}
 
 	// TODO: Read padding
@@ -229,36 +224,54 @@ ID3v2Header.prototype.populate=function(buffer){
 };
 
 /**
- * The ID3v2 tag frame header occupies 10 bytes in file.
+ * To speed up the process of locating an ID3v2 tag when searching from the end of a file,
+ * a footer can be added to the tag. It is REQUIRED to add a footer to an appended tag,
+ * i.e. a tag located after all audio data.
+ *
+ * The footer is a copy of the header, but with a different identifier.
  *
  * @constructor
  */
-var ID3v2FrameHeader=function(){
+var ID3v2Footer=function(){
 	this.errors=[];
-	this.id='';
+	// Tag version
+	this.version='Unknown';
+	// Tag flags
+	this.flags={
+		// Indicates whether or not unsynchronisation is applied on all frames.
+		isUnSynchronisation:false,
+		// Indicates whether or not the header is followed by an extended header.
+		hasExtendedHeader:false,
+		// Is used as an 'experimental indicator'.
+		// This flag SHALL always be set when the tag is in an experimental stage.
+		isExperimental:false,
+		// Indicates that a footer is present at the very end of the tag.
+		hasFooter:false
+	};
+	// Tag size in bytes
 	this.size=0;
-	this.flags={};
-	this.value={};
 };
 /**
  * @type {AudioTagData}
  */
-ID3v2FrameHeader.prototype=new AudioTagData;
+ID3v2Footer.prototype=new AudioTagData;
 /**
  * @param buffer
  */
-ID3v2FrameHeader.prototype.populate=function(buffer){
-	// The Frame ID first 4 bytes.
-	var id=buffer.stringAt(0,4);
-	if(ID3v2.validFramesIds.indexOf(id)<0){
-		this.errors.push('Error: ID3v2 Frame not not supported ('+id+')!');
+ID3v2Footer.prototype.populate=function(buffer){
+	// Footer, the first 3 bytes.
+	if(buffer.stringAt(0,3).toUpperCase()!=='3DI'){
+		this.errors.push('Error: ID3v2 not found!');
 		return;
 	}
 
-	this.id=id;
-	// TODO: Get size
-	// TODO: Get flags
-	// TODO Create new ID3v2FrameValue base on frame ID
+	this.version='2.'+buffer.byteAt(3)+'.'+buffer.byteAt(4);
+	this.flags.isUnSynchronisation=buffer.byteAt(5)&128?true:false;
+	this.flags.hasExtendedHeader=buffer.byteAt(5)&64?true:false;
+	this.flags.isExperimental=buffer.byteAt(5)&32?true:false;
+	// Footer added in ID3 2.4.0
+	this.flags.hasFooter=buffer.byteAt(5)&16?true:false;
+	this.size=UnSynchsafeInt(buffer.slice(6,4));
 };
 
 /**

@@ -3,7 +3,7 @@
  */
 var ID3v1Reader=function(){
 	this.errors=[];
-	this.tag=0;
+	this.result=0;
 };
 /**
  * @type {AudioTagsReader}
@@ -14,7 +14,7 @@ ID3v1Reader.prototype=new AudioTagsReader;
  */
 ID3v1Reader.prototype.readFromFile=function(file){
 	var self=this,
-		reader=new FileReader;
+		reader=this.getFileReader();
 	reader.onloadend=function(e){
 		if(e.target.readyState==FileReader.DONE){
 			var result=new BinaryBuffer(e.target.result),
@@ -23,15 +23,12 @@ ID3v1Reader.prototype.readFromFile=function(file){
 			tag.populate(result);
 
 			if(tag.hasError()){
-				for(var i=0;i<tag.errors.length;i++){
-					self.errors.push(tag.errors[i]);
-				}
-				self.onLoaded.call(self);
+				self.addErrors(tag.errors);
 			}
 			else {
-				self.tag=tag;
-				self.onLoaded.call(self);
+				self.result=tag;
 			}
+			self.onLoaded({type:'onLoaded',target:self});
 		}
 	};
 	// The ID3v1 tag occupies last 128 bytes in file.

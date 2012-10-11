@@ -13,9 +13,26 @@ AudioTagsReader.prototype.hasError=function(){
 	return this.errors.length>0;
 };
 /**
+ * @param {Array} errors
+ */
+AudioTagsReader.prototype.addErrors=function(errors){
+	for(var i=0;i<errors.length;i++){
+		this.errors.push(errors[i]);
+	}
+};
+/**
+ * @return {FileReader}
+ */
+AudioTagsReader.prototype.getFileReader=function(){
+	if(this._reader===undefined){
+		this._reader=new FileReader;
+	}
+	return this._reader;
+};
+/**
  * @type {Number}
  */
-AudioTagsReader.prototype.tag=0;
+AudioTagsReader.prototype.result=0;
 /**
  *
  */

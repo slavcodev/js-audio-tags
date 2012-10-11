@@ -15,15 +15,15 @@ if(window.File && window.FileReader && window.FileList && window.Blob) {
 
 		function readID3v1FromFile(file){
 			var reader=new ID3v1Reader;
-			reader.onLoaded=function(){
+			reader.onLoaded=function(e){
 				print('Read ID3v1');
-				if(this.hasError()){
-					for(var i=0;i<this.errors.length;i++){
-						print(this.errors[i]);
+				if(e.target.hasError()){
+					for(var i=0;i<e.target.errors.length;i++){
+						print(e.target.errors[i]);
 					}
 				}
 				else {
-					print(this.tag.title);
+					print(e.target.result.title);
 				}
 				print("");
 			};
@@ -32,22 +32,22 @@ if(window.File && window.FileReader && window.FileList && window.Blob) {
 
 		function readID3v2FromFile(file){
 			var reader=new ID3v2Reader;
-			reader.onLoaded=function(){
+			reader.onLoaded=function(e){
 				print('Read ID3v2');
-				if(this.hasError()){
-					for(var i=0;i<this.errors.length;i++){
-						print(this.errors[i]);
+				if(e.target.hasError()){
+					for(var i=0;i<e.target.errors.length;i++){
+						print(e.target.errors[i]);
 					}
 				}
 				else {
-					print(this.tag.header.size);
+					print(e.target.result.header.size);
 				}
 				print("");
 			};
 			reader.readFromFile(file);
 		}
 
-		function readFile(file){
+		!function(file){
 			if(file.type=='audio/mpeg'){
 				print('Read file: "'+file.name+'"');
 				//readID3v1FromFile(file);
@@ -59,9 +59,7 @@ if(window.File && window.FileReader && window.FileList && window.Blob) {
 			else {
 				print('Unsupported file type <'+file.type+'>');
 			}
-		}
-
-		readFile(file);
+		}(file);
 	});
 }
 else {
